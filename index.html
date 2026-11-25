@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DDJ-FLX4 — 3D Controller Showroom &amp; Custom Skin Studio</title>
+  <meta name="description" content="Interactive 3D Pioneer DDJ-FLX4 DJ performance controller with studio lighting, realistic materials, custom skin previewing, and 1:1 Photoshop UV template export.">
+  <meta property="og:title" content="DDJ-FLX4 — 3D Controller Showroom &amp; Skin Studio">
+  <meta property="og:description" content="Preview custom DJ controller skins in real-time 3D, adjust surface finishes, and export 1:1 Photoshop UV blueprints.">
+  <meta property="og:image" content="./media/ddj-flx4-poster.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="skins.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js",
+        "three/addons/": "./vendor/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Fullscreen 3D Viewport -->
+  <main id="viewport-container">
+    <canvas id="webgl-canvas" role="img" aria-label="Interactive 3D model of a Pioneer DDJ-FLX4 DJ Controller. Drag to orbit, scroll to zoom, click pads or jog wheels to interact."></canvas>
+  </main>
+
+  <!-- Top Navigation & Global Actions -->
+  <header class="topbar">
+    <button id="brand-reset-btn" class="brand-badge" type="button" title="Reset camera to Studio Hero view">
+      <span class="brand-led" aria-hidden="true"></span>
+      <span class="brand-code">DDJ-FLX4</span>
+      <span class="brand-sep" aria-hidden="true">//</span>
+      <span class="brand-tag">STUDIO</span>
+    </button>
+
+    <div class="page-title-group">
+      <h1 class="page-title">3D Controller Showroom &amp; Skin Studio</h1>
+      <p class="page-subtitle">DDJ-FLX4 2-Channel Performance System // Interactive 3D Customizer</p>
+    </div>
+
+    <div class="top-actions">
+      <button id="snapshot-btn" class="action-btn" type="button" aria-label="Capture 3D render snapshot" title="Save PNG screenshot of current 3D view">
+        <span aria-hidden="true">📷</span>
+        <span class="btn-text-desktop">Snapshot</span>
+      </button>
+      <button id="toggle-motion-btn" class="action-btn" type="button" aria-label="Toggle camera rotation (Shortcut: Space)">
+        <span id="motion-dot" class="btn-icon-dot" aria-hidden="true"></span>
+        <span id="motion-label">Motion: Slow</span>
+      </button>
+      <button id="open-drawer-btn" class="action-btn" type="button" aria-label="Open Skin Studio drawer">
+        <span aria-hidden="true">🎨</span>
+        <span>Skin Studio</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Bottom Camera View HUD -->
+  <nav class="bottom-bar" aria-label="Camera perspective presets">
+    <button class="hud-btn active" data-view="studio" type="button">Studio Hero</button>
+    <button class="hud-btn" data-view="top" type="button">Top Down (Skin View)</button>
+    <button class="hud-btn" data-view="front" type="button">Front Angle</button>
+    <button class="hud-btn" data-view="closeup" type="button">Mixer Close-Up</button>
+  </nav>
+
+  <!-- Subtle Interaction Hint -->
+  <div id="interaction-hint" class="interaction-hint" aria-hidden="true">
+    <span>Drag to orbit</span>
+    <span>•</span>
+    <span>Scroll to zoom</span>
+    <span>•</span>
+    <span>Click pads &amp; platters</span>
+    <span>•</span>
+    <span>Space to pause</span>
+  </div>
+
+  <!-- Custom Skin Studio Slide-Over Drawer -->
+  <aside id="skin-drawer" class="skin-drawer" aria-label="Controller Skin Studio Drawer">
+    <div class="drawer-header">
+      <div>
+        <h2 class="drawer-title">Custom Skin Studio</h2>
+        <p class="drawer-subtitle">DDJ-FLX4 Faceplate UV Mapper</p>
+      </div>
+      <button id="close-drawer-btn" class="drawer-close" type="button" aria-label="Close drawer">✕</button>
+    </div>
+
+    <div class="drawer-content">
+      <!-- Current Skin Status -->
+      <div>
+        <h3 class="drawer-section-title">Active Finish</h3>
+        <div class="skin-status-card">
+          <div class="skin-meta">
+            <span id="current-skin-name" class="skin-name">Factory Satin Black</span>
+            <span id="current-skin-type" class="skin-type">Original Finish</span>
+          </div>
+          <button id="reset-skin-btn" class="reset-btn" type="button">Restore Factory</button>
+        </div>
+      </div>
+
+      <!-- Photoshop Skin Upload -->
+      <div>
+        <h3 class="drawer-section-title">Upload Custom Skin</h3>
+        <div id="skin-dropzone" class="dropzone">
+          <input type="file" id="skin-file-input" class="file-input" accept="image/png,image/jpeg,image/webp">
+          <div class="dropzone-icon" aria-hidden="true">📁</div>
+          <p class="dropzone-label">Drop your Photoshop skin image here</p>
+          <p class="dropzone-hint">PNG, JPG, or WEBP up to 4096×2048. Maps directly to the DDJ-FLX4 faceplate surface.</p>
+        </div>
+      </div>
+
+      <!-- Surface Material & Alignment Controls -->
+      <div>
+        <h3 class="drawer-section-title">Surface Finish &amp; Alignment</h3>
+        <div class="controls-card">
+          <div class="finish-pills" role="group" aria-label="Surface material finish">
+            <button type="button" class="finish-pill" data-finish="matte">Matte Vinyl</button>
+            <button type="button" class="finish-pill active" data-finish="satin">Satin Anodized</button>
+            <button type="button" class="finish-pill" data-finish="gloss">Gloss Acrylic</button>
+          </div>
+
+          <div class="control-row">
+            <div class="control-label-row">
+              <label for="skin-scale-input">Texture Zoom</label>
+              <span id="skin-scale-val" class="control-val">100%</span>
+            </div>
+            <input id="skin-scale-input" type="range" min="50" max="200" value="100" step="1">
+          </div>
+
+          <div class="control-grid-2">
+            <div class="control-row">
+              <div class="control-label-row">
+                <label for="skin-offset-x">Horizontal (X)</label>
+                <span id="skin-offset-x-val" class="control-val">0%</span>
+              </div>
+              <input id="skin-offset-x" type="range" min="-50" max="50" value="0" step="1">
+            </div>
+            <div class="control-row">
+              <div class="control-label-row">
+                <label for="skin-offset-y">Vertical (Y)</label>
+                <span id="skin-offset-y-val" class="control-val">0%</span>
+              </div>
+              <input id="skin-offset-y" type="range" min="-50" max="50" value="0" step="1">
+            </div>
+          </div>
+
+          <label class="toggle-row" for="overlay-labels-toggle">
+            <span class="toggle-text">Print Hardware Silkscreen Markings</span>
+            <input id="overlay-labels-toggle" type="checkbox" checked>
+          </label>
+        </div>
+      </div>
+
+      <!-- Preset Skins -->
+      <div>
+        <h3 class="drawer-section-title">Studio Finish Presets</h3>
+        <div class="preset-grid">
+          <button class="preset-card active" data-preset="factory" type="button">
+            <div class="preset-swatch swatch-factory" aria-hidden="true"></div>
+            <span class="preset-label">Factory Black</span>
+            <span class="preset-sub">Matte Anodized</span>
+          </button>
+          <button class="preset-card" data-preset="neon" type="button">
+            <div class="preset-swatch swatch-neon" aria-hidden="true"></div>
+            <span class="preset-label">Midnight Neon</span>
+            <span class="preset-sub">Cyber VJ Edition</span>
+          </button>
+          <button class="preset-card" data-preset="acid" type="button">
+            <div class="preset-swatch swatch-acid" aria-hidden="true"></div>
+            <span class="preset-label">Acid Chromatic</span>
+            <span class="preset-sub">Chromatic Edition</span>
+          </button>
+          <button class="preset-card" data-preset="gold" type="button">
+            <div class="preset-swatch swatch-gold" aria-hidden="true"></div>
+            <span class="preset-label">Brushed Gold</span>
+            <span class="preset-sub">Luxury Atelier</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Photoshop Guide Template Export -->
+      <div>
+        <h3 class="drawer-section-title">Photoshop Design Tool</h3>
+        <div class="template-box">
+          <p class="template-desc">
+            Export a 1:1 scale blueprint template (2048×1128) with exact jog wheel, EQ knob, fader, pad, and transport cutout guides for Photoshop or Illustrator.
+          </p>
+          <button id="export-template-btn" class="download-btn" type="button">
+            <span aria-hidden="true">⬇</span> Download 1:1 UV Blueprint (.PNG)
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Live Toast Notification -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Three.js App Execution -->
+  <script type="module" src="skins.js"></script>
+</body>
+</html>
